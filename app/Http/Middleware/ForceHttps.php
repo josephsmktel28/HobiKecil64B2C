@@ -15,8 +15,16 @@ class ForceHttps
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->secure() && config('app.env') === 'production') {
-            return redirect()->secure($request->getRequestUri());
+        // Check if in production and not already on HTTPS
+        if (config('app.env') === 'production') {
+            // Check multiple headers for HTTPS indication from proxy/load balancer
+            $isSecure = $request->secure() ||
+                        $request->header('X-Forwarded-Proto') === 'https' ||
+                        $request->header('HTTP_X_FORWARDED_PROTO') === 'https';
+
+            if (!$isSecure) {
+                return redirect()->secure($request->getRequestUri());
+            }
         }
 
         return $next($request);
